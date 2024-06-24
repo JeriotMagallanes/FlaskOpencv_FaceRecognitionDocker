@@ -1,0 +1,27 @@
+habilitar env: en la ruta del proyecto
+
+instalar flask
+pip install flask
+
+instalar listas
+pip list
+
+actualizar listas:
+python -m pip install --upgrade pip
+
+instalar open cv
+pip install opencv-python
+
+abrir com dministrador la ruta del proyecto
+.\venv\Scripts\Activate
+pip install opencv-contrib-python
+
+instalar librería iml
+pip install Pillow
+
+
+para despliegue instalar
+pip install waitress
+
+ejecutar programa
+waitress-serve --listen=127.0.0.1:5000 app:app
