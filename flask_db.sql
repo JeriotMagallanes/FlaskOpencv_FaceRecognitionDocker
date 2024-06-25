@@ -11,6 +11,9 @@ SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
 SET time_zone = "+00:00";
 
+-- Otorgar privilegios globales al usuario root
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' IDENTIFIED BY 'root_password' WITH GRANT OPTION;
+FLUSH PRIVILEGES;
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -20,7 +23,10 @@ SET time_zone = "+00:00";
 --
 -- Base de datos: `flask_db`
 --
+CREATE DATABASE IF NOT EXISTS `flask_db`;
 
+-- Usar la base de datos
+USE `flask_db`;
 -- --------------------------------------------------------
 
 --

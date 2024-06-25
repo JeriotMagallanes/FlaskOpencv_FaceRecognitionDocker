@@ -1,32 +1,40 @@
-version: '3.8'
+version: '3'
 
 services:
-  web:
-    build: 
-      context: .
-      dockerfile: Dockerfile
+  app:
+    container_name: my_app
+    build: .
     ports:
       - "5000:5000"
+    environment:
+      MYSQL_HOST: my_mysql_db
+      MYSQL_USER: root
+      MYSQL_PASSWORD: root_password
+      MYSQL_DATABASE: flask_db
+    volumes:
+      - ./dataset:/app/dataset
+      - ./resources:/app/resources
     depends_on:
       - db
-    environment:
-      - MYSQL_HOST=db
-      - MYSQL_DATABASE=${MYSQL_DATABASE}
-      - MYSQL_USER=${MYSQL_USER}
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    networks:
+      - my-network
 
   db:
+    container_name: my_mysql_db
     image: mysql:5.7
-    restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-    ports:
-      - "3306:3306"
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: flask_db
     volumes:
-      - ./flask_db.sql:/docker-entrypoint-initdb.d/flask_db.sql  # Monta el script SQL al contenedor de MySQL
+      - db_data:/var/lib/mysql
+      - ./flask_db.sql:/docker-entrypoint-initdb.d/flask_db.sql
+    command: --init-file /docker-entrypoint-initdb.d/flask_db.sql
+    networks:
+      - my-network
+
+networks:
+  my-network:
+    driver: bridge
 
 volumes:
   db_data:

@@ -1,20 +1,19 @@
-# Utilizar una imagen base de Python para Linux
-FROM python:3.9
+FROM python:3.8
 
-# Establecer el directorio de trabajo
+# Instalar dependencias del sistema
+RUN apt-get update && apt-get install -y \
+    libsm6 \
+    libxext6 \
+    libxrender-dev
+
+# Establecer directorio de trabajo
 WORKDIR /app
 
-# Copiar el archivo de requerimientos
-COPY requirements.txt requirements.txt
-
-# Instalar las dependencias necesarias
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copiar el resto del código de la aplicación
+# Copiar archivos necesarios (asegúrate de incluir todos los archivos de tu aplicación)
 COPY . .
 
-# Exponer el puerto que utilizará la aplicación
-EXPOSE 5000
+# Instalar dependencias Python
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Comando para ejecutar la aplicación
-CMD ["waitress-serve", "--listen=0.0.0.0:5000", "app:app"]
+# Comando por defecto para ejecutar la aplicación Flask
+CMD ["python", "app.py"]

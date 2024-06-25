@@ -25,3 +25,12 @@ pip install waitress
 
 ejecutar programa
 waitress-serve --listen=127.0.0.1:5000 app:app
+
+
+pip install flask
+pip list
+python -m pip install --upgrade pip
+pip install opencv-python
+pip install opencv-contrib-python
+pip install Pillow
+pip install waitress

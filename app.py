@@ -7,35 +7,34 @@ import os
 
 app = Flask(__name__)
 
-
 mydb = mysql.connector.connect(
-    host=os.getenv('MYSQL_HOST'),
-    user=os.getenv('MYSQL_USER'),
-    passwd=os.getenv('MYSQL_PASSWORD'),
-    database=os.getenv('MYSQL_DATABASE')
+    host=os.environ.get('MYSQL_HOST'),
+    user=os.environ.get('MYSQL_USER'),
+    password=os.environ.get('MYSQL_PASSWORD'),
+    database=os.environ.get('MYSQL_DATABASE')
 )
 
-#mydb = mysql.connector.connect(
-   # host="localhost",
-    #user="root",
-    #passwd="",
-    #database="flask_db"
-#)
 mycursor = mydb.cursor()
 
+# Directorio base de la aplicación
+base_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Rutas relativas a los recursos y datos
+resources_dir = os.path.join(base_dir, 'resources')
+dataset_dir = os.path.join(base_dir, 'dataset')
+classifier_path = os.path.join(base_dir, 'classifier.xml')
+
+# Clasificador de rostros
+face_cascade_path = os.path.join(resources_dir, 'haarcascade_frontalface_default.xml')
+face_classifier = cv2.CascadeClassifier(face_cascade_path)
 
 # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< Generate dataset >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def generate_dataset(nbr):
-    face_classifier = cv2.CascadeClassifier(
-        "C:/Users/HP/PycharmProjects/FlaskOpencv_FaceRecognition/resources/haarcascade_frontalface_default.xml")
-
     def face_cropped(img):
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         faces = face_classifier.detectMultiScale(gray, 1.3, 5)
-        # scaling factor=1.3
-        # Minimum neighbor = 5
 
-        if faces is ():
+        if faces == ():  # Reemplazar "is" con "==" para evitar SyntaxWarning
             return None
         for (x, y, w, h) in faces:
             cropped_face = img[y:y + h, x:x + w]
@@ -59,11 +58,11 @@ def generate_dataset(nbr):
             face = cv2.resize(face_cropped(img), (200, 200))
             face = cv2.cvtColor(face, cv2.COLOR_BGR2GRAY)
 
-            file_name_path = "dataset/" + nbr + "." + str(img_id) + ".jpg"
+            file_name_path = os.path.join(dataset_dir, f"{nbr}.{img_id}.jpg")
             cv2.imwrite(file_name_path, face)
             cv2.putText(face, str(count_img), (50, 50), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 255, 0), 2)
 
-            mycursor.execute("""INSERT INTO `img_dataset` (`img_id`, `img_person`) VALUES
+            mycursor.execute("""INSERT INTO img_dataset (img_id, img_person) VALUES
                                 ('{}', '{}')""".format(img_id, nbr))
             mydb.commit()
 
@@ -72,21 +71,19 @@ def generate_dataset(nbr):
 
             if cv2.waitKey(1) == 13 or int(img_id) == int(max_imgid):
                 break
-                cap.release()
-                cv2.destroyAllWindows()
 
+    cap.release()
+    cv2.destroyAllWindows()
 
 # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< Train Classifier >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 @app.route('/train_classifier/<nbr>')
 def train_classifier(nbr):
-    dataset_dir = "C:/Users/HP/PycharmProjects/FlaskOpencv_FaceRecognition/dataset"
-
     path = [os.path.join(dataset_dir, f) for f in os.listdir(dataset_dir)]
     faces = []
     ids = []
 
     for image in path:
-        img = Image.open(image).convert('L');
+        img = Image.open(image).convert('L')
         imageNp = np.array(img, 'uint8')
         id = int(os.path.split(image)[1].split(".")[1])
 
@@ -97,10 +94,9 @@ def train_classifier(nbr):
     # Train the classifier and save
     clf = cv2.face.LBPHFaceRecognizer_create()
     clf.train(faces, ids)
-    clf.write("classifier.xml")
+    clf.write(classifier_path)
 
     return redirect('/')
-
 
 # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< Face Recognition >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def face_recognition():  # generate frame by frame from camera
@@ -134,10 +130,9 @@ def face_recognition():  # generate frame by frame from camera
         coords = draw_boundary(img, faceCascade, 1.1, 10, (255, 255, 0), "Face", clf)
         return img
 
-    faceCascade = cv2.CascadeClassifier(
-        "C:/Users/HP/PycharmProjects/FlaskOpencv_FaceRecognition/resources/haarcascade_frontalface_default.xml")
+    faceCascade = cv2.CascadeClassifier(face_cascade_path)
     clf = cv2.face.LBPHFaceRecognizer_create()
-    clf.read("classifier.xml")
+    clf.read(classifier_path)
 
     wCam, hCam = 500, 400
 
@@ -156,6 +151,8 @@ def face_recognition():  # generate frame by frame from camera
         if key == 27:
             break
 
+    cap.release()
+    cv2.destroyAllWindows()
 
 @app.route('/')
 def home():
@@ -164,16 +161,13 @@ def home():
 
     return render_template('index.html', data=data)
 
-
 @app.route('/addprsn')
 def addprsn():
     mycursor.execute("select ifnull(max(prs_nbr) + 1, 101) from prs_mstr")
     row = mycursor.fetchone()
     nbr = row[0]
-    # print(int(nbr))
 
     return render_template('addprsn.html', newnbr=int(nbr))
-
 
 @app.route('/addprsn_submit', methods=['POST'])
 def addprsn_submit():
@@ -181,35 +175,29 @@ def addprsn_submit():
     prsname = request.form.get('txtname')
     prsskill = request.form.get('optskill')
 
-    mycursor.execute("""INSERT INTO `prs_mstr` (`prs_nbr`, `prs_name`, `prs_skill`) VALUES
+    mycursor.execute("""INSERT INTO prs_mstr (prs_nbr, prs_name, prs_skill) VALUES
                     ('{}', '{}', '{}')""".format(prsnbr, prsname, prsskill))
     mydb.commit()
 
-    # return redirect(url_for('home'))
     return redirect(url_for('vfdataset_page', prs=prsnbr))
-
 
 @app.route('/vfdataset_page/<prs>')
 def vfdataset_page(prs):
     return render_template('gendataset.html', prs=prs)
-
 
 @app.route('/vidfeed_dataset/<nbr>')
 def vidfeed_dataset(nbr):
     # Video streaming route. Put this in the src attribute of an img tag
     return Response(generate_dataset(nbr), mimetype='multipart/x-mixed-replace; boundary=frame')
 
-
 @app.route('/video_feed')
 def video_feed():
     # Video streaming route. Put this in the src attribute of an img tag
     return Response(face_recognition(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
-
 @app.route('/fr_page')
 def fr_page():
     return render_template('fr_page.html')
 
-
 if __name__ == "__main__":
-    app.run(host='127.0.0.1', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
