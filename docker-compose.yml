@@ -1,4 +1,4 @@
-version: '3'
+version: '3.9'
 
 services:
   app:
@@ -11,9 +11,14 @@ services:
       MYSQL_USER: root
       MYSQL_PASSWORD: root_password
       MYSQL_DATABASE: flask_db
+      CAMERA_INDEX: 0  # Ajusta según la cámara que quieres usar por defecto
     volumes:
       - ./dataset:/app/dataset
       - ./resources:/app/resources
+    devices:
+      - /dev/video0:/dev/video0
+      - /dev/video1:/dev/video1  # Añade más líneas si tienes más cámaras
+    privileged: true
     depends_on:
       - db
     networks:
