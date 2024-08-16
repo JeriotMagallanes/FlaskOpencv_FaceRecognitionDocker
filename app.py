@@ -14,14 +14,6 @@ mydb = mysql.connector.connect(
     password=os.environ.get('MYSQL_PASSWORD'),
     database=os.environ.get('MYSQL_DATABASE')
 )
-"""
-# Conexión a la base de datos XAMPP
-mydb = mysql.connector.connect(
-    host="localhost",
-    user="root",
-    passwd="",
-    database="flask_db"
-)"""
 
 mycursor = mydb.cursor()
 
